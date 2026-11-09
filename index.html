@@ -1,0 +1,833 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Sheffield WR% Calculadora</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: una columna de "placas" de acero: calculadora rápida, ranking de los 12, récords por movimiento y resultados del último año. */
+:root {
+  color-scheme: dark;
+  --bg: #0b0c0d;
+  --plate: #151719;
+  --plate-2: #1c1f22;
+  --line: #2b2f33;
+  --fg: #e6e8ea;
+  --muted: #8b9198;
+  --steel-hi: #f4f6f8;
+  --steel-mid: #9aa1a8;
+  --steel-lo: #4a5057;
+  --gold: #d8c08a;
+  --up: #8fd1a4;
+  --down: #e39a8e;
+  --font-display: "Archivo", "Arial Narrow", Arial, sans-serif;
+  --font-body: "Archivo", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-data: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg);
+  background-image: radial-gradient(120% 60% at 50% -10%, #23272b 0%, var(--bg) 60%);
+  background-attachment: fixed;
+  color: var(--fg);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.45;
+}
+.wrap {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding-block: 28px 64px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid;
+  gap: 22px;
+}
+.chrome {
+  background: linear-gradient(180deg, var(--steel-hi) 0%, #c9ced3 38%, var(--steel-lo) 52%, var(--steel-mid) 70%, var(--steel-hi) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+header { display: grid; gap: 14px; }
+.brand { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+.wordmark {
+  font-family: var(--font-display);
+  font-stretch: 62%;
+  font-weight: 900;
+  font-size: clamp(52px, 11vw, 104px);
+  line-height: .86;
+  letter-spacing: .01em;
+  margin: 0;
+  text-transform: uppercase;
+}
+.brand .tag {
+  font-family: var(--font-display);
+  font-stretch: 75%;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .18em;
+  font-size: 13px;
+  color: var(--muted);
+}
+.sub { color: var(--muted); max-width: 66ch; margin: 0; text-wrap: pretty; }
+
+.sticky-nav {
+  position: sticky;
+  top: env(safe-area-inset-top, 0px);
+  z-index: 5;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  padding-block: 10px;
+  background: linear-gradient(180deg, var(--bg) 70%, transparent);
+}
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+.jump { display: flex; gap: 6px; flex-wrap: wrap; }
+.jump a {
+  font: 600 11px/1 var(--font-display); text-transform: uppercase; letter-spacing: .14em;
+  color: var(--muted); text-decoration: none; padding: 9px 10px; border: 1px solid var(--line); border-radius: 999px;
+}
+.jump a:hover { color: var(--fg); border-color: var(--steel-mid); }
+
+.seg {
+  display: inline-flex;
+  background: var(--plate);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 4px;
+  gap: 4px;
+}
+.seg button {
+  font: 700 14px/1 var(--font-display);
+  font-stretch: 80%;
+  text-transform: uppercase;
+  letter-spacing: .12em;
+  color: var(--muted);
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+  padding: 11px 20px;
+  cursor: pointer;
+}
+.seg.small button { font-size: 12px; padding: 9px 14px; letter-spacing: .08em; }
+.seg button[aria-pressed="true"] {
+  color: #0b0c0d;
+  background: linear-gradient(180deg, #f4f6f8, #a9afb5 55%, #d9dde1);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.7), 0 1px 6px rgba(0,0,0,.5);
+}
+
+.panel {
+  background: linear-gradient(180deg, var(--plate-2), var(--plate));
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 20px;
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
+  scroll-margin-top: 70px;
+}
+.panel-head { display: flex; justify-content: space-between; align-items: end; gap: 12px; flex-wrap: wrap; }
+.panel-head > div { display: grid; gap: 6px; min-width: 0; }
+h2 {
+  font-family: var(--font-display);
+  font-stretch: 68%;
+  font-weight: 800;
+  text-transform: uppercase;
+  font-size: 30px;
+  line-height: 1;
+  letter-spacing: .02em;
+  margin: 0;
+  text-wrap: balance;
+}
+.hint { color: var(--muted); font-size: 13px; margin: 0; max-width: 70ch; }
+.label {
+  font: 600 11px/1 var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: .16em;
+  color: var(--muted);
+}
+
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  font: 700 15px/1 var(--font-data);
+  color: var(--fg);
+  background: var(--plate);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 12px;
+  cursor: pointer;
+  min-width: 64px;
+}
+.chip[aria-pressed="true"] { border-color: var(--steel-mid); background: #2a2e32; box-shadow: inset 0 0 0 1px var(--steel-mid); }
+
+.calc { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 20px; align-items: start; }
+@media (max-width: 760px) { .calc { grid-template-columns: 1fr; } }
+.calc-left { display: grid; gap: 14px; min-width: 0; }
+
+.stepper { display: flex; align-items: stretch; gap: 6px; min-width: 0; }
+.stepper button {
+  font: 600 14px/1 var(--font-data);
+  color: var(--fg);
+  background: var(--plate);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0 10px;
+  cursor: pointer;
+  min-width: 46px;
+}
+.stepper button:hover, .chip:hover, .btn:hover { border-color: var(--steel-mid); }
+input[type="number"], input[type="text"], select {
+  font: 500 16px/1.2 var(--font-data);
+  color: var(--fg);
+  background: #0f1112;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 12px;
+  min-width: 0;
+}
+input[type="text"] { font-family: var(--font-body); }
+input:focus-visible, select:focus-visible, button:focus-visible, a:focus-visible { outline: 2px solid var(--steel-hi); outline-offset: 2px; }
+input[type="number"] { -moz-appearance: textfield; }
+input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.big-input { font-size: 30px; font-weight: 600; width: 100%; text-align: center; padding: 12px; }
+
+.readout {
+  background: #0d0e10;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 18px;
+  display: grid;
+  gap: 10px;
+}
+.pct-big {
+  font-family: var(--font-display);
+  font-stretch: 62%;
+  font-weight: 900;
+  font-size: clamp(64px, 14vw, 112px);
+  line-height: .9;
+  font-variant-numeric: tabular-nums;
+}
+.pct-big small { font-size: .45em; }
+.wr-line { font-family: var(--font-data); font-size: 13px; color: var(--muted); }
+.wr-line b { color: var(--fg); font-weight: 600; }
+
+.ladder { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+@media (max-width: 460px) { .ladder { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.rung {
+  background: var(--plate);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px;
+  display: grid;
+  gap: 2px;
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  color: var(--fg);
+  text-align: left;
+}
+.rung span { font-size: 11px; color: var(--muted); }
+.rung b { font-size: 15px; font-weight: 600; }
+.rung.hit { border-color: var(--steel-mid); background: #23272b; }
+.rung.wr span { color: var(--gold); }
+
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.btn {
+  font: 700 13px/1 var(--font-display);
+  font-stretch: 85%;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: var(--fg);
+  background: var(--plate);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 11px 14px;
+  cursor: pointer;
+}
+.btn.primary { color: #0b0c0d; background: linear-gradient(180deg, #f4f6f8, #a9afb5 55%, #d9dde1); border-color: transparent; }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+
+/* Ranking */
+.board { display: grid; gap: 8px; }
+.row, .board-head {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1.7fr) 96px minmax(0, 1.25fr) 116px minmax(0, 1.6fr) 36px;
+  gap: 10px;
+  align-items: center;
+}
+.board-head { padding: 0 12px; }
+.row {
+  background: var(--plate);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+.row.p1 { border-color: #b8a36f; box-shadow: inset 0 0 0 1px rgba(216,192,138,.35); }
+.row.p2 { border-color: #9aa1a8; }
+.row.p3 { border-color: #8a6a4e; }
+.row.moved { background: linear-gradient(90deg, rgba(216,192,138,.07), var(--plate) 40%); }
+.pos {
+  font-family: var(--font-display);
+  font-stretch: 62%;
+  font-weight: 900;
+  font-size: 34px;
+  line-height: 1;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.row.p1 .pos { color: var(--gold); }
+.namecell { display: grid; gap: 5px; min-width: 0; }
+.namecell .name { width: 100%; }
+.meta { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; font-family: var(--font-data); font-size: 11.5px; color: var(--muted); min-width: 0; }
+.meta .ref { overflow-wrap: anywhere; }
+.row select { padding: 10px 6px; width: 100%; }
+.row .stepper input { width: 100%; text-align: center; }
+.row .stepper button { min-width: 36px; padding: 0 6px; font-size: 12px; }
+.row .pct { font: 600 22px/1 var(--font-data); font-variant-numeric: tabular-nums; text-align: right; }
+.row .pct small { display: block; font-size: 11px; color: var(--muted); font-weight: 500; margin-top: 4px; }
+.gap { font-family: var(--font-data); font-size: 12.5px; line-height: 1.5; color: var(--muted); min-width: 0; }
+.gap b { color: var(--fg); font-weight: 600; }
+.gap .lead { color: var(--gold); }
+.gap .prize { color: var(--fg); font-weight: 600; }
+.del {
+  background: transparent; border: 1px solid transparent; color: var(--muted);
+  border-radius: 8px; height: 36px; cursor: pointer; font-size: 18px; line-height: 1;
+}
+.del:hover { border-color: var(--line); color: var(--down); }
+@media (max-width: 860px) {
+  .board-head { display: none; }
+  .row {
+    grid-template-columns: 44px minmax(0, 1fr) 84px 36px;
+    grid-template-areas:
+      "pos name cls del"
+      "pos tot tot pct"
+      "gap gap gap gap";
+  }
+  .row .pos { grid-area: pos; }
+  .row .namecell { grid-area: name; }
+  .row .cls { grid-area: cls; align-self: start; }
+  .row .stepper { grid-area: tot; }
+  .row .pct { grid-area: pct; font-size: 18px; }
+  .row .gap { grid-area: gap; border-top: 1px dashed var(--line); padding-top: 8px; }
+  .row .del { grid-area: del; align-self: start; }
+  .row .pct small { display: none; }
+}
+@media (max-width: 420px) {
+  .row { grid-template-columns: 38px minmax(0, 1fr) 76px 32px; grid-template-areas: "pos name cls del" "pos tot tot tot" "pos pct pct pct" "gap gap gap gap"; }
+  .row .pct { text-align: left; }
+}
+.empty { color: var(--muted); font-size: 14px; padding: 18px; border: 1px dashed var(--line); border-radius: 10px; text-align: center; }
+
+.pill {
+  display: inline-block; font: 600 10.5px/1 var(--font-display); text-transform: uppercase; letter-spacing: .12em;
+  padding: 4px 7px; border-radius: 999px; border: 1px solid var(--line); white-space: nowrap; color: var(--muted);
+}
+.pill.ok { color: var(--up); border-color: rgba(143,209,164,.35); }
+.pill.chk { color: var(--gold); border-color: rgba(216,192,138,.4); }
+.pill.mod { color: var(--steel-hi); border-color: var(--steel-mid); }
+.pill.move { color: #0b0c0d; background: var(--gold); border-color: var(--gold); }
+.pill.new { color: var(--steel-hi); border-color: var(--steel-mid); }
+
+/* Tablas */
+.table-scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; }
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--line); vertical-align: top; }
+tr:last-child td { border-bottom: 0; }
+th { font: 600 11px/1 var(--font-display); text-transform: uppercase; letter-spacing: .14em; color: var(--muted); background: #121416; white-space: nowrap; }
+.rec-table { min-width: 860px; }
+.rec-table td.cls-cell { font: 700 16px/1.2 var(--font-data); white-space: nowrap; }
+.rec { display: grid; gap: 2px; }
+.rec .kg { font: 600 17px/1.1 var(--font-data); font-variant-numeric: tabular-nums; }
+.rec .who { font-size: 13px; font-weight: 600; }
+.rec .where { color: var(--muted); font-size: 11.5px; font-family: var(--font-data); }
+.rec input[type="number"] { width: 104px; padding: 6px 8px; font-size: 16px; font-weight: 600; }
+td.total-col { background: rgba(255,255,255,.025); }
+
+.results { display: grid; gap: 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (max-width: 900px) { .results { grid-template-columns: 1fr; } }
+.card {
+  background: var(--plate);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px;
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+.card-head { display: flex; justify-content: space-between; gap: 10px; align-items: start; }
+.card-head > div { min-width: 0; display: grid; gap: 4px; }
+.card-name { font-family: var(--font-display); font-stretch: 75%; font-weight: 800; font-size: 20px; text-transform: uppercase; letter-spacing: .02em; line-height: 1.05; }
+.card-sub { font-family: var(--font-data); font-size: 12px; color: var(--muted); display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.card-best { text-align: right; font-family: var(--font-data); white-space: nowrap; }
+.card-best b { display: block; font-size: 20px; font-weight: 600; }
+.card-best span { font-size: 11px; color: var(--muted); }
+.meet-table { min-width: 540px; font-family: var(--font-data); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.meet-table th { font-size: 10px; padding: 8px; }
+.meet-table td { padding: 7px 8px; white-space: nowrap; vertical-align: middle; }
+.meet-table td.mname { white-space: normal; min-width: 150px; font-family: var(--font-body); font-size: 12.5px; }
+.meet-table td.mname small { display: block; color: var(--muted); font-family: var(--font-data); font-size: 11px; }
+.meet-table tr.top td { background: rgba(216,192,138,.08); }
+.meet-table td.tot { font-weight: 600; color: var(--fg); }
+.meet-table td.dq { color: var(--down); }
+
+footer { color: var(--muted); font-size: 12.5px; display: grid; gap: 6px; }
+footer a { color: var(--fg); }
+@media (prefers-reduced-motion: no-preference) { .row { transition: border-color .2s; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <h1 class="wordmark chrome">Sheffield</h1>
+      <span class="tag">% del récord mundial · Clásico IPF</span>
+    </div>
+    <p class="sub">Sheffield V · 21 de noviembre de 2026 · Utilita Arena. Gana quien hace el total más alto en porcentaje del récord mundial clásico de su categoría, con los récords del día anterior al evento.</p>
+  </header>
+
+  <nav class="sticky-nav" aria-label="Navegación">
+    <div class="seg" role="group" aria-label="Sección">
+      <button type="button" id="g-m" aria-pressed="true">Hombres</button>
+      <button type="button" id="g-f" aria-pressed="false">Mujeres</button>
+    </div>
+    <div class="jump">
+      <a href="#calculadora">Calculadora</a>
+      <a href="#ranking">Ranking</a>
+      <a href="#records">Récords</a>
+      <a href="#resultados">Resultados</a>
+    </div>
+  </nav>
+
+  <section class="panel" id="calculadora" aria-labelledby="h-calc">
+    <div class="panel-head">
+      <h2 id="h-calc" class="chrome">Calculadora rápida</h2>
+      <p class="hint">Toca un porcentaje de la escalera para cargar esos kilos.</p>
+    </div>
+    <div class="calc">
+      <div class="calc-left">
+        <span class="label">Categoría</span>
+        <div class="chips" id="calc-chips"></div>
+        <span class="label">Total (kg)</span>
+        <div class="stepper" id="calc-stepper">
+          <button type="button" data-step="-2.5">-2.5</button>
+          <button type="button" data-step="-0.5">-0.5</button>
+          <input class="big-input" type="number" id="calc-kg" inputmode="decimal" step="0.5" min="0" aria-label="Total en kilos">
+          <button type="button" data-step="0.5">+0.5</button>
+          <button type="button" data-step="2.5">+2.5</button>
+        </div>
+      </div>
+      <div class="readout">
+        <span class="label">Porcentaje del récord</span>
+        <div class="pct-big chrome" id="calc-pct">0<small>%</small></div>
+        <div class="wr-line" id="calc-wr"></div>
+        <div class="ladder" id="calc-ladder"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" id="ranking" aria-labelledby="h-rank">
+    <div class="panel-head">
+      <div>
+        <h2 id="h-rank" class="chrome">Ranking de los 12</h2>
+        <p class="hint" id="rank-hint"></p>
+      </div>
+      <div class="toolbar">
+        <button type="button" class="btn primary" id="add">Añadir atleta</button>
+        <button type="button" class="btn" id="example">Cargar Sheffield V</button>
+        <button type="button" class="btn" id="clear">Vaciar</button>
+      </div>
+    </div>
+    <div class="toolbar">
+      <span class="label">Total de partida</span>
+      <div class="seg small" role="group" aria-label="Total de partida">
+        <button type="button" id="b-year" aria-pressed="true">Mejor del último año</button>
+        <button type="button" id="b-worlds" aria-pressed="false">Mundial 2026</button>
+      </div>
+    </div>
+    <p class="hint">Para cambiar a un atleta de categoría, elige la nueva en su fila. Se recalcula contra el récord de esa categoría y, si compitió en ella el último año, se carga su mejor total ahí.</p>
+    <div class="board-head label" aria-hidden="true">
+      <span style="text-align:center">Pos</span><span>Atleta</span><span>Cat.</span><span>Total kg</span><span style="text-align:right">% WR</span><span>Premio y para subir</span><span></span>
+    </div>
+    <div class="board" id="board"></div>
+  </section>
+
+  <section class="panel" id="records" aria-labelledby="h-wr">
+    <div class="panel-head">
+      <div>
+        <h2 id="h-wr" class="chrome">Récords mundiales</h2>
+        <p class="hint">Open, clásico (raw), IPF. Sentadilla, banca y peso muerto dentro de powerlifting completo, incluidos cuartos intentos. El total es el que cuenta para el porcentaje; si cambia, edítalo aquí y todo se actualiza.</p>
+      </div>
+      <div class="toolbar"><button type="button" class="btn" id="reset-wr">Restaurar récords</button></div>
+    </div>
+    <div class="table-scroll">
+      <table class="rec-table">
+        <thead><tr><th>Cat.</th><th>Sentadilla</th><th>Banca</th><th>Peso muerto</th><th>Total</th></tr></thead>
+        <tbody id="wr-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel" id="resultados" aria-labelledby="h-res">
+    <div class="panel-head">
+      <div>
+        <h2 id="h-res" class="chrome">Resultados del último año</h2>
+        <p class="hint">Cada competencia de powerlifting clásico de los 24 atletas desde el 22 de octubre de 2025, de su perfil en OpenPowerlifting. El % compara cada total con el récord actual de esa categoría. Ordenados por su mejor porcentaje.</p>
+      </div>
+    </div>
+    <div class="results" id="results"></div>
+  </section>
+
+  <footer>
+    <p style="margin:0">Récords al 22 de octubre de 2026: mejor marca clásica en campeonatos internacionales IPF (mundiales, regionales y Sheffield) según <a href="https://www.openipf.org" target="_blank" rel="noopener">OpenIPF</a>. Resultados: <a href="https://www.openpowerlifting.org" target="_blank" rel="noopener">OpenPowerlifting</a>. Atletas: <a href="https://sbdapparel.com/pages/sheffield-athletes" target="_blank" rel="noopener">SBD Sheffield V</a>. Antes del evento, compara con <a href="https://goodlift.info/records.php?fd=0&amp;ac=0&amp;sx=M&amp;eq=1" target="_blank" rel="noopener">GoodLift</a>.</p>
+    <p style="margin:0">Los cambios se guardan en este navegador.</p>
+  </footer>
+</div>
+
+<script>
+var RECORDS = {"m":[{"c":"59","S":[240.5,"Antoine Garcia","France","2026-03-15","European Open Classic Powerlifting Championships",0],"B":[171.0,"Sergey Fedosienko","Russia","2016-06-19","World Classic Powerlifting Championships",0],"D":[303.0,"Michael Slabic","USA","2026-06-13","World Classic Powerlifting Championships",0],"T":[669.5,"Sergey Fedosienko","Russia","2016-06-19","World Classic Powerlifting Championships",0]},{"c":"66","S":[275.5,"Jonathan Garcia","USA","2023-08-08","North American Regional Powerlifting Championships",0],"B":[213.5,"Eddie Berglund","Sweden","2018-11-24","European Classic Powerlifting Championships",0],"D":[324.5,"Kjell Egil Bakkelund","Norway","2026-01-31","Sheffield Powerlifting Championships",0],"T":[782.0,"Kjell Egil Bakkelund","Norway","2026-01-31","Sheffield Powerlifting Championships",0]},{"c":"74","S":[341.0,"Austin Perkins","USA","2026-01-31","Sheffield Powerlifting Championships",0],"B":[216.0,"Chun-Chia Fan","Taiwan","2026-06-13","World Classic Powerlifting Championships",0],"D":[344.0,"Austin Perkins","USA","2026-06-13","World Classic Powerlifting Championships",0],"T":[891.5,"Austin Perkins","USA","2026-01-31","Sheffield Powerlifting Championships",0]},{"c":"83","S":[338.0,"Russel Orhii","USA","2025-01-26","Sheffield Powerlifting Championships",0],"B":[220.0,"Owen Hubbard","UK","2022-11-25","European Classic Powerlifting Championships",0],"D":[383.0,"Enahoro Asein","Hungary","2026-06-13","World Classic Powerlifting Championships",0],"T":[890.0,"Joseph Borenstein","USA","2025-06-08","World Classic Powerlifting Championships",0]},{"c":"93","S":[356.0,"Russel Orhii","USA","2026-01-31","Sheffield Powerlifting Championships",0],"B":[246.0,"Jonathan Cayco","USA","2025-06-08","World Classic Powerlifting Championships",0],"D":[380.0,"Aimene Ibrahim El Khalil Nouari","Algeria","2025-11-24","African Powerlifting & Bench Press Championships",0],"T":[927.5,"William Ball","USA","2026-06-13","World Classic Powerlifting Championships",0]},{"c":"105","S":[393.0,"Joshua Joachim","USA","2026-08-03","Regional Powerlifting Championships",0],"B":[261.0,"Joseph Amendola","USA","2020-03-08","Arnold SBD Pro American",1],"D":[400.0,"Sanchez Dillon","England","2024-06-15","World Classic Powerlifting Championships",0],"T":[980.0,"Anthony McNaughton","USA","2026-06-13","World Classic Powerlifting Championships",0]},{"c":"120","S":[393.0,"Ashton Rouska","USA","2026-06-13","World Classic Powerlifting Championships",0],"B":[265.5,"Devin Williams","USA","2025-06-08","World Classic Powerlifting Championships",0],"D":[401.5,"Etienne El Chaer","Lebanon","2026-01-31","Sheffield Powerlifting Championships",0],"T":[1000.0,"Rondel Hunte","Trinidad and Tobago","2026-06-13","World Classic Powerlifting Championships",0]},{"c":"120+","S":[478.0,"Jesus Olivares","USA","2024-02-10","Sheffield Powerlifting Championships",0],"B":[291.5,"Ilyes Boughalem","Algeria","2022-06-06","World Classic Powerlifting Championships",0],"D":[411.0,"Temur Samkharadze","Georgia","2024-08-28","World Junior and Sub-Juniors Powerlifting Championships",0],"T":[1152.5,"Jesus Olivares","USA","2023-03-25","Sheffield Powerlifting Championships",0]}],"f":[{"c":"47","S":[170.5,"Tiffany Chapon","France","2026-06-13","World Classic Powerlifting Championships",0],"B":[107.5,"Tiffany Chapon","France","2026-01-31","Sheffield Powerlifting Championships",0],"D":[212.5,"Heather Connor","USA","2025-06-08","World Classic Powerlifting Championships",0],"T":[453.0,"Tiffany Chapon","France","2026-06-13","World Classic Powerlifting Championships",0]},{"c":"52","S":[182.5,"Pleun Dekkers","Netherlands","2026-03-15","European Open Classic Powerlifting Championships",0],"B":[114.0,"Megan-Li Smith","New Zealand","2026-06-13","World Classic Powerlifting Championships",0],"D":[220.5,"Farhanna Farid","Singapore","2026-06-13","World Classic Powerlifting Championships",0],"T":[486.5,"Megan-Li Smith","New Zealand","2026-06-13","World Classic Powerlifting Championships",0]},{"c":"57","S":[200.0,"Sara Naldi","Italy","2026-06-13","World Classic Powerlifting Championships",0],"B":[123.0,"Donna Berglund","Sweden","2022-06-06","World Classic Powerlifting Championships",0],"D":[238.0,"Joy Nnamani","England","2026-06-13","World Classic Powerlifting Championships",0],"T":[530.5,"Sara Naldi","Italy","2026-01-31","Sheffield Powerlifting Championships",0]},{"c":"63","S":[214.0,"Prescillia Bavoil","France","2025-01-26","Sheffield Powerlifting Championships",0],"B":[143.5,"Carola Garra","Italy","2022-09-23","Arnold Sports Festival",1],"D":[241.5,"Alba Boström","Sweden","2026-06-13","World Classic Powerlifting Championships",0],"T":[582.5,"Alba Boström","Sweden","2026-01-31","Sheffield Powerlifting Championships",0]},{"c":"69","S":[227.0,"Carola Garra","Italy","2026-06-13","World Classic Powerlifting Championships",0],"B":[158.0,"Agata Sitko","Poland","2025-01-26","Sheffield Powerlifting Championships",0],"D":[260.0,"Agata Sitko","Poland","2025-01-26","Sheffield Powerlifting Championships",0],"T":[628.0,"Agata Sitko","Poland","2025-01-26","Sheffield Powerlifting Championships",0]},{"c":"76","S":[238.0,"Cranon Worford","USA","2026-06-13","World Classic Powerlifting Championships",0],"B":[155.5,"Agata Sitko","Poland","2024-06-15","World Classic Powerlifting Championships",0],"D":[263.0,"Chisom Ezeh","Canada","2026-06-13","World Classic Powerlifting Championships",0],"T":[628.5,"Karlina Tongotea","New Zealand","2026-01-31","Sheffield Powerlifting Championships",0]},{"c":"84","S":[250.5,"Amanda Lawrence","USA","2026-01-31","Sheffield Powerlifting Championships",0],"B":[156.0,"Agata Sitko","Poland","2024-07-13","Euro Muscle Show",1],"D":[270.0,"Ziana Azariah","England","2026-06-13","World Classic Powerlifting Championships",0],"T":[648.0,"Amanda Lawrence","USA","2026-01-31","Sheffield Powerlifting Championships",0]},{"c":"84+","S":[321.5,"Sonita Muluh","Belgium","2026-06-13","World Classic Powerlifting Championships",0],"B":[167.0,"Alexis Jones","USA","2024-06-15","World Classic Powerlifting Championships",0],"D":[292.5,"Aquinn Onuoha","England","2026-06-13","World Classic Powerlifting Championships",0],"T":[756.5,"Brittany Schlater","Canada","2026-06-13","World Classic Powerlifting Championships",0]}]};
+var PROFILES = [{"id":"austinperkins1","g":"m","name":"Austin Perkins","c":"74","country":"USA","wc":0,"m":[["2026-06-13","World Classic Powerlifting Championships","IPF","74",73.3,340.0,207.5,344.0,891.5,"1",1],["2026-01-31","Sheffield Powerlifting Championships","IPF","74",73.38,341.0,207.5,343.0,891.5,"1",1]]},{"id":"williamball2","g":"m","name":"Will Ball","c":"93","country":"USA","wc":0,"m":[["2026-06-13","World Classic Powerlifting Championships","IPF","93",91.4,335.0,217.5,375.0,927.5,"1",1],["2026-03-05","Open Nationals","AMP","93",91.92,330.0,220.0,380.0,930.0,"1",0]]},{"id":"rondelhunte","g":"m","name":"Rondel Hunte","c":"120","country":"Trinidad and Tobago","wc":0,"m":[["2026-06-13","World Classic Powerlifting Championships","IPF","120",119.45,370.0,260.0,370.0,1000.0,"1",1],["2026-01-24","15th National Powerlifting Championships","TTPF","120",118.6,365.0,270.0,390.0,1025.0,"1",0]]},{"id":"anthonymcnaughton","g":"m","name":"Anthony McNaughton","c":"105","country":"USA","wc":0,"m":[["2026-06-13","World Classic Powerlifting Championships","IPF","105",103.95,367.5,245.0,367.5,980.0,"1",1],["2026-03-05","Open Nationals","AMP","105",104.34,367.5,252.5,360.0,980.0,"1",0],["2026-01-31","Sheffield Powerlifting Championships","IPF","105",104.28,365.0,251.0,360.0,976.0,"6",1]]},{"id":"adeomisakin","g":"m","name":"Ade Omisakin","c":"83","country":"England","wc":0,"m":[["2026-06-13","World Classic Powerlifting Championships","IPF","83",82.5,312.5,205.0,365.0,882.5,"1",1],["2025-12-05","SBD British Open Classic Powerlifting Championships","BP","83",83.0,292.5,200.0,347.5,840.0,"1",0]]},{"id":"michaelslabic","g":"m","name":"Mike Slabic","c":"59","country":"USA","wc":0,"m":[["2026-06-13","World Classic Powerlifting Championships","IPF","59",58.7,230.0,125.0,303.0,658.0,"2",1],["2026-03-05","Open Nationals","AMP","59",58.74,225.0,125.0,301.0,651.0,"1",0],["2025-12-13","POD Winter Seasonal","AMP","59",58.7,227.5,120.0,295.0,642.5,"1",0]]},{"id":"kjellegilbakkelund","g":"m","name":"Kjell Bakkelund","c":"66","country":"Norway","wc":0,"m":[["2026-06-13","World Classic Powerlifting Championships","IPF","66",65.75,257.5,187.5,310.0,755.0,"1",1],["2026-01-31","Sheffield Powerlifting Championships","IPF","66",65.64,260.0,197.5,324.5,782.0,"2",1],["2025-10-26","NM styrkeløft Utstyrsfritt","NSF","74",73.1,260.0,195.0,325.0,780.0,"1",0]]},{"id":"gustavhedlund","g":"m","name":"Gustav Hedlund","c":"93","country":"Sweden","wc":1,"m":[["2026-10-04","Avancus Houston","AMP","105",93.5,335.0,227.5,360.0,922.5,"1",0],["2026-09-17","Western European Powerlifting Championships","EPF","93",92.93,335.5,225.5,360.0,921.0,"1",1],["2026-01-31","Sheffield Powerlifting Championships","IPF","93",92.8,330.0,225.0,355.0,910.0,"7",1]]},{"id":"joshuangoka","g":"m","name":"Joshua Ngoka","c":"120","country":"England","wc":0,"m":[["2026-08-18","World Sub-Junior and Junior Powerlifting Championships","IPF","120",119.6,373.0,220.0,387.5,980.5,"1",1],["2026-06-13","World Classic Powerlifting Championships","IPF","120",119.1,372.5,220.0,372.5,965.0,"2",1],["2026-04-24","British University Championships","BP","120+",124.9,310.0,207.5,330.0,847.5,"1",0],["2025-12-05","SBD British Open Classic Powerlifting Championships","BP","120",119.5,368.0,217.5,380.0,965.5,"2",0]]},{"id":"aimeneibrahimelkhalilnouari","g":"m","name":"Aimene Nouari","c":"93","country":"Algeria","wc":0,"m":[["2026-06-13","World Classic Powerlifting Championships","IPF","93",92.65,337.5,190.0,370.0,897.5,"4",1],["2026-04-10","National Championship Seniors/Veterans","FAPL","93",92.93,335.0,195.0,370.0,900.0,"1",0],["2025-11-24","African Powerlifting & Bench Press Championships","AfricanPF","93",92.38,330.0,120.0,380.0,830.0,"1",1]]},{"id":"jesusolivares","g":"m","name":"Jesus Olivares","c":"120+","country":"USA","wc":0,"m":[["2026-10-04","Avancus Houston","AMP","120+",190.4,485.0,281.5,387.5,1154.0,"8",0],["2026-06-13","World Classic Powerlifting Championships","IPF","120+",186.1,460.0,257.5,377.5,1095.0,"1",1],["2026-03-05","Open Nationals","AMP","120+",181.72,440.0,252.5,417.5,1110.0,"1",0],["2025-11-22","SBD Austin","AMP","120+",182.4,478.5,265.0,410.0,1153.5,"3",0]]},{"id":"ashtonrouska","g":"m","name":"Ashton Rouska","c":"120","country":"USA","wc":1,"m":[["2026-06-13","World Classic Powerlifting Championships","IPF","120",109.05,393.0,200.0,342.5,935.5,"5",1],["2026-03-05","Open Nationals","AMP","120",111.64,400.5,202.5,380.0,983.0,"1",0],["2025-11-22","SBD Austin","AMP","105",104.8,381.0,192.5,379.5,953.0,"4",0]]},{"id":"brittanyschlater","g":"f","name":"Brittany Schlater","c":"84+","country":"Canada","wc":0,"m":[["2026-06-13","World Classic Powerlifting Championships","IPF","84+",131.05,302.5,165.0,289.0,756.5,"1",1],["2026-03-14","Nationals","CPU","84+",133.8,292.5,160.0,280.0,732.5,"1",0],["2026-01-31","Sheffield Powerlifting Championships","IPF","84+",134.16,300.0,165.0,285.0,750.0,"5",1]]},{"id":"tiffanychapon","g":"f","name":"Tiffany Chapon","c":"47","country":"France","wc":0,"m":[["2026-06-13","World Classic Powerlifting Championships","IPF","47",46.8,170.5,105.0,177.5,453.0,"1",1],["2026-01-31","Sheffield Powerlifting Championships","IPF","47",46.98,169.0,107.5,175.0,451.5,"1",1],["2025-12-17","Championnats de France de Force Athlétique Open","FFForce","52",48.3,172.0,102.5,180.0,454.5,"1",0],["2025-10-25","Silent Worker Meet 8","FFForce","52",48.97,170.0,107.5,172.5,450.0,"1",0]]},{"id":"meganlismith","g":"f","name":"Megan-Li Smith","c":"52","country":"New Zealand","wc":0,"m":[["2026-06-13","World Classic Powerlifting Championships","IPF","52",51.8,172.5,114.0,200.0,486.5,"1",1],["2026-03-21","CPA Provincials","NZPF","57",52.55,150.0,112.5,187.5,450.0,"1",0],["2025-11-19","Oceania Regional Powerlifting Championships","ORPF","57",52.25,175.0,110.5,205.0,490.5,"1",0]]},{"id":"sonitamuluh","g":"f","name":"Sonita Muluh","c":"84+","country":"Belgium","wc":1,"m":[["2026-10-04","Avancus Houston","AMP","84+",142.3,320.0,157.5,272.5,750.0,"1",0],["2026-06-13","World Classic Powerlifting Championships","IPF","84+",143.1,321.5,162.5,null,null,"DQ",1],["2026-03-15","European Open Classic Powerlifting Championships","EPF","84+",142.0,290.0,150.0,265.0,705.0,"1",1],["2026-01-31","Sheffield Powerlifting Championships","IPF","84+",139.32,318.5,157.5,275.0,751.0,"4",1],["2025-10-25","Belgisch Kampioenschap - Championnats de Belgique - Powerlifting - Classic - Open","KBGV","84+",136.8,275.0,125.0,250.0,650.0,"1",0]]},{"id":"cranonworford","g":"f","name":"Cranon Worford","c":"76","country":"USA","wc":0,"m":[["2026-06-13","World Classic Powerlifting Championships","IPF","76",75.7,238.0,132.5,255.0,625.5,"1",1],["2026-03-05","Open Nationals","AMP","76",75.5,240.0,127.5,261.5,629.0,"1",0]]},{"id":"albabostrom","g":"f","name":"Alba Boström","c":"63","country":"Sweden","wc":0,"m":[["2026-06-13","World Classic Powerlifting Championships","IPF","63",62.75,210.0,117.5,241.5,569.0,"1",1],["2026-01-31","Sheffield Powerlifting Championships","IPF","63",62.9,205.0,140.0,237.5,582.5,"2",1]]},{"id":"saranaldi","g":"f","name":"Sara Naldi","c":"57","country":"Italy","wc":0,"m":[["2026-10-11","9° Campionato Italiano di Powerlifting Classic Senior Femminile","FIPL","57",56.99,200.5,105.0,215.0,520.5,"1",0],["2026-06-13","World Classic Powerlifting Championships","IPF","57",56.8,200.0,107.5,210.0,517.5,"2",1],["2026-01-31","Sheffield Powerlifting Championships","IPF","57",56.78,198.0,105.0,227.5,530.5,"3",1],["2025-11-08","8° Campionato Italiano Classic di Powerlifting Femminile Senior","FIPL","57",56.49,198.0,102.5,220.5,521.0,"1",0]]},{"id":"joynnamani","g":"f","name":"Joy Nnamani","c":"57","country":"England","wc":0,"m":[["2026-06-13","World Classic Powerlifting Championships","IPF","57",56.95,180.0,100.0,238.0,518.0,"1",1],["2025-12-05","SBD British Open Classic Powerlifting Championships","BP","57",56.7,185.0,100.0,235.5,520.5,"1",0]]},{"id":"zianaazariah","g":"f","name":"Ziana Azariah","c":"84","country":"England","wc":0,"m":[["2026-06-13","World Classic Powerlifting Championships","IPF","84",83.95,227.5,122.5,270.0,620.0,"1",1],["2026-01-31","Sheffield Powerlifting Championships","IPF","84",84.0,222.5,120.0,257.5,600.0,"12",1],["2025-12-05","SBD British Open Classic Powerlifting Championships","BP","84",84.0,215.0,117.5,262.5,595.0,"1",0]]},{"id":"zuzannamazur","g":"f","name":"Zuzanna Mazur","c":"76","country":"Poland","wc":0,"m":[["2026-06-13","World Classic Powerlifting Championships","IPF","76",75.0,217.5,132.5,252.5,602.5,"2",1],["2026-05-08","Akademickie Mistrzostwa Polski w Trójboju Siłowym Klasycznym","PZKFiTS","76",75.4,195.0,117.5,231.0,543.5,"1",0],["2026-04-18","Athens Cup PrimeTime","HPF","76",76.0,200.0,125.0,255.0,580.0,"1",0],["2026-03-27","Puchar Polski w Trójboju Siłowym Klasycznym","PZKFiTS","76",75.8,190.0,110.0,255.0,555.0,"1",0],["2025-11-28","European Juniors and Sub-Juniors Classic Championships","EPF","76",75.6,210.5,125.0,251.0,586.5,"1",1]]},{"id":"ameliepicherplante","g":"f","name":"Amélie Picher-Plante","c":"47","country":"Canada","wc":0,"m":[["2026-06-13","World Classic Powerlifting Championships","IPF","47",46.7,155.0,90.0,187.5,432.5,"2",1],["2026-03-14","Nationals","CPU","47",46.46,155.0,93.0,188.5,436.5,"1",0]]},{"id":"karlinatongotea","g":"f","name":"Karlina Tongotea","c":"84","country":"New Zealand","wc":1,"m":[["2026-06-13","World Classic Powerlifting Championships","IPF","84",83.45,215.0,137.5,255.0,607.5,"2",1],["2026-01-31","Sheffield Powerlifting Championships","IPF","76",75.68,231.5,135.0,262.0,628.5,"6",1]]}];
+
+(function () {
+  "use strict";
+
+  var CLASSES = { m: ["59", "66", "74", "83", "93", "105", "120", "120+"], f: ["47", "52", "57", "63", "69", "76", "84", "84+"] };
+  var PRIZES = [25000, 12500, 7500, 6000, 4000, 2000, 1750, 1500, 1250, 1000];
+  var MONTHS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+  var RECENT_FROM = "2026-09-01";
+  var KEY = "sheffield-wr-calc-v3";
+
+  function meetLabel(name, date) {
+    var y = date.slice(0, 4);
+    if (/^World Classic Powerlifting Championships/.test(name)) return "Mundial " + y;
+    if (/^Sheffield/.test(name)) return "Sheffield " + y;
+    return name + " " + y;
+  }
+  function fmtDate(d) { return +d.slice(8, 10) + " " + MONTHS[+d.slice(5, 7) - 1] + " " + d.slice(0, 4); }
+
+  var DEFAULT_WR = {};
+  ["m", "f"].forEach(function (g) {
+    DEFAULT_WR[g] = RECORDS[g].map(function (r) { return { c: r.c, kg: r.T[0] }; });
+  });
+  var PROF = {};
+  PROFILES.forEach(function (p) { PROF[p.id] = p; });
+
+  /* ---------- Perfiles ---------- */
+  // m: [fecha, meet, fed, cat, peso, S, B, D, total, puesto, internacional]
+  function bestIn(p, c, base) {
+    var list = p.m.filter(function (m) { return m[3] === c && m[8] > 0; });
+    if (base === "worlds") {
+      var w = list.find(function (m) { return /^World Classic Powerlifting Championships/.test(m[1]) && m[0].slice(0, 4) === "2026"; });
+      if (w) return { kg: w[8], ref: w[8] + " kg · Mundial 2026" };
+    }
+    if (!list.length) return null;
+    var b = list.reduce(function (a, m) { return m[8] > a[8] ? m : a; });
+    return { kg: b[8], ref: b[8] + " kg · " + meetLabel(b[1], b[0]) + (b[10] ? "" : " (nacional)") };
+  }
+  function fromProfile(p, c, base) {
+    var b = bestIn(p, c, base);
+    return { id: uid(), pid: p.id, name: p.name, c: c, kg: b ? b.kg : 0, ref: b ? b.ref : "Sin total en -" + c + " el último año" };
+  }
+  function makeLineup(g, base) {
+    return PROFILES.filter(function (p) { return p.g === g; }).map(function (p) { return fromProfile(p, p.c, base); });
+  }
+
+  var state;
+  function clone(o) { return JSON.parse(JSON.stringify(o)); }
+  function uid() { return Math.random().toString(36).slice(2, 9); }
+  function fresh() {
+    return {
+      g: "m", base: "year",
+      wr: clone(DEFAULT_WR),
+      calc: { m: { c: "74", kg: 891.5 }, f: { c: "47", kg: 453 } },
+      lineup: { m: makeLineup("m", "year"), f: makeLineup("f", "year") }
+    };
+  }
+  function load() {
+    try {
+      var raw = localStorage.getItem(KEY);
+      if (raw) { var s = JSON.parse(raw); if (s && s.wr && s.lineup && s.calc) return s; }
+    } catch (e) {}
+    return fresh();
+  }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
+  state = load();
+
+  var $ = function (id) { return document.getElementById(id); };
+  function fmtKg(n) { return (Math.round(n * 10) / 10).toLocaleString("es-ES", { minimumFractionDigits: n % 1 ? 1 : 0, maximumFractionDigits: 1 }); }
+  function fmtPct(n) { return n.toLocaleString("es-ES", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+  function wrOf(g, c) { return state.wr[g].find(function (x) { return x.c === c; }) || null; }
+  function pctOf(g, c, kg) { var r = wrOf(g, c); if (!r || !r.kg || !(kg > 0)) return null; return kg / r.kg * 100; }
+  function kgToBeat(targetPct, wrKg) {
+    var exact = targetPct / 100 * wrKg;
+    var t = Math.floor(exact / 0.5 + 1e-9) * 0.5 + 0.5;
+    if (t / wrKg * 100 <= targetPct + 1e-12) t += 0.5;
+    return t;
+  }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (ch) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]; }); }
+
+  /* ---------- Sección ---------- */
+  function setGender(g) { state.g = g; save(); renderAll(); }
+  $("g-m").addEventListener("click", function () { setGender("m"); });
+  $("g-f").addEventListener("click", function () { setGender("f"); });
+
+  /* ---------- Calculadora ---------- */
+  function renderCalc() {
+    var g = state.g, cs = state.calc[g];
+    $("calc-chips").innerHTML = CLASSES[g].map(function (c) {
+      return '<button type="button" class="chip" data-c="' + c + '" aria-pressed="' + (c === cs.c) + '">' + c + '</button>';
+    }).join("");
+    var inp = $("calc-kg");
+    if (document.activeElement !== inp) inp.value = cs.kg || "";
+    updateCalcReadout();
+  }
+  function updateCalcReadout() {
+    var g = state.g, cs = state.calc[g], r = wrOf(g, cs.c);
+    var rec = RECORDS[g][CLASSES[g].indexOf(cs.c)];
+    var p = pctOf(g, cs.c, cs.kg);
+    $("calc-pct").innerHTML = (p == null ? "0" : fmtPct(p)) + "<small>%</small>";
+    if (!r) return;
+    var diff = cs.kg > 0 ? cs.kg - r.kg : null;
+    var holder = r.kg === rec.T[0] ? " · " + esc(rec.T[1]) : " · editado";
+    $("calc-wr").innerHTML = "Récord " + esc(r.c) + ": <b>" + fmtKg(r.kg) + " kg</b>" + holder +
+      (diff == null ? "" : " · " + (diff >= 0 ? "<b>+" + fmtKg(diff) + " kg</b> sobre el récord" : "faltan <b>" + fmtKg(-diff) + " kg</b> para el 100%"));
+    var steps = [96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107];
+    $("calc-ladder").innerHTML = steps.map(function (s) {
+      var kg = Math.ceil(s / 100 * r.kg / 0.5) * 0.5;
+      var hit = p != null && p >= s && p < s + 1;
+      return '<button type="button" class="rung' + (hit ? " hit" : "") + (s === 100 ? " wr" : "") + '" data-kg="' + kg + '"><span>' + s + '%' + (s === 100 ? " · WR" : "") + '</span><b>' + fmtKg(kg) + '</b></button>';
+    }).join("");
+  }
+  $("calc-chips").addEventListener("click", function (e) {
+    var b = e.target.closest(".chip"); if (!b) return;
+    state.calc[state.g].c = b.dataset.c; save(); renderCalc();
+  });
+  $("calc-kg").addEventListener("input", function (e) {
+    state.calc[state.g].kg = parseFloat(e.target.value) || 0; save(); updateCalcReadout();
+  });
+  $("calc-stepper").addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-step]"); if (!b) return;
+    var cs = state.calc[state.g];
+    cs.kg = Math.max(0, Math.round(((cs.kg || 0) + parseFloat(b.dataset.step)) * 10) / 10);
+    $("calc-kg").value = cs.kg; save(); updateCalcReadout();
+  });
+  $("calc-ladder").addEventListener("click", function (e) {
+    var b = e.target.closest(".rung"); if (!b) return;
+    state.calc[state.g].kg = parseFloat(b.dataset.kg);
+    $("calc-kg").value = state.calc[state.g].kg; save(); updateCalcReadout();
+  });
+
+  /* ---------- Ranking ---------- */
+  function ranked() {
+    var g = state.g;
+    var list = state.lineup[g].map(function (a, i) { return { a: a, i: i, p: pctOf(g, a.c, a.kg) }; });
+    list.sort(function (x, y) {
+      if (x.p == null && y.p == null) return x.i - y.i;
+      if (x.p == null) return 1;
+      if (y.p == null) return -1;
+      return y.p - x.p || x.i - y.i;
+    });
+    return list;
+  }
+  function gapHtml(list, k) {
+    var g = state.g, me = list[k];
+    if (me.p == null) return "Mete un total para entrar al ranking.";
+    var wr = wrOf(g, me.a.c).kg;
+    var prize = k < PRIZES.length ? '<span class="prize">£' + PRIZES[k].toLocaleString("en-GB") + '</span> · ' : "";
+    if (k === 0) {
+      var second = list[1] && list[1].p != null ? list[1] : null;
+      if (!second) return prize + '<span class="lead">Primer puesto.</span>';
+      var secNeed = kgToBeat(me.p, wrOf(g, second.a.c).kg) - second.a.kg;
+      return prize + '<span class="lead">Lidera por ' + fmtPct(me.p - second.p) + ' puntos.</span><br>A ' + esc(second.a.name || "el 2º") + ' le faltan <b>+' + fmtKg(secNeed) + ' kg</b>.';
+    }
+    var above = list[k - 1], first = list[0];
+    var needUp = kgToBeat(above.p, wr) - me.a.kg;
+    var out = prize + 'Al ' + k + 'º: <b>+' + fmtKg(needUp) + ' kg</b> (' + fmtKg(me.a.kg + needUp) + ')';
+    if (k > 1) {
+      var needFirst = kgToBeat(first.p, wr) - me.a.kg;
+      out += '<br>Al 1º: <b>+' + fmtKg(needFirst) + ' kg</b> (' + fmtKg(me.a.kg + needFirst) + ')';
+    }
+    return out;
+  }
+  function metaHtml(a) {
+    var p = a.pid && PROF[a.pid], bits = [];
+    if (p && p.wc) bits.push('<span class="pill">Wildcard</span>');
+    if (p && a.c !== p.c) bits.push('<span class="pill move">' + p.c + ' → ' + a.c + '</span>');
+    if (a.ref) bits.push('<span class="ref">' + esc(a.ref) + '</span>');
+    return bits.join("");
+  }
+  function renderBoard() {
+    var g = state.g, list = ranked(), board = $("board");
+    $("add").disabled = state.lineup[g].length >= 12;
+    $("rank-hint").textContent = state.lineup[g].length + " de 12 atletas · " + (g === "m" ? "Hombres" : "Mujeres") + ". Se ordena solo por porcentaje; cambia los kilos para simular Sheffield V.";
+    ["year", "worlds"].forEach(function (b) { $("b-" + b).setAttribute("aria-pressed", String(state.base === b)); });
+    if (!list.length) {
+      board.innerHTML = '<div class="empty">Sin atletas. Pulsa "Añadir atleta" o carga el plantel de Sheffield V.</div>';
+      return;
+    }
+    board.innerHTML = list.map(function (it, k) {
+      var a = it.a, p = a.pid && PROF[a.pid];
+      var cls = "row" + (it.p != null && k < 3 ? " p" + (k + 1) : "") + (p && a.c !== p.c ? " moved" : "");
+      return '<div class="' + cls + '" data-id="' + a.id + '">' +
+        '<div class="pos chrome">' + (it.p != null ? k + 1 : "–") + '</div>' +
+        '<div class="namecell"><input type="text" class="name" id="n-' + a.id + '" value="' + esc(a.name) + '" placeholder="Nombre" aria-label="Nombre">' +
+        '<div class="meta">' + metaHtml(a) + '</div></div>' +
+        '<select class="cls" id="c-' + a.id + '" aria-label="Categoría">' + CLASSES[g].map(function (c) { return '<option' + (c === a.c ? " selected" : "") + '>' + c + '</option>'; }).join("") + '</select>' +
+        '<div class="stepper"><button type="button" data-d="-2.5" aria-label="Restar 2,5 kg">-2.5</button>' +
+        '<input type="number" class="kg" id="k-' + a.id + '" inputmode="decimal" step="0.5" min="0" value="' + (a.kg || "") + '" placeholder="kg" aria-label="Total kg">' +
+        '<button type="button" data-d="2.5" aria-label="Sumar 2,5 kg">+2.5</button></div>' +
+        '<div class="pct">' + (it.p == null ? "–" : fmtPct(it.p) + "%") + '<small>WR ' + fmtKg(wrOf(g, a.c).kg) + '</small></div>' +
+        '<div class="gap">' + gapHtml(list, k) + '</div>' +
+        '<button type="button" class="del" aria-label="Quitar atleta" title="Quitar">×</button>' +
+        '</div>';
+    }).join("");
+  }
+  function refreshNumbers() {
+    var g = state.g, list = ranked();
+    list.forEach(function (it, k) {
+      var row = document.querySelector('.row[data-id="' + it.a.id + '"]'); if (!row) return;
+      row.querySelector(".pct").innerHTML = (it.p == null ? "–" : fmtPct(it.p) + "%") + "<small>WR " + fmtKg(wrOf(g, it.a.c).kg) + "</small>";
+      row.querySelector(".gap").innerHTML = gapHtml(list, k);
+    });
+  }
+  function findA(id) { return state.lineup[state.g].find(function (a) { return a.id === id; }); }
+  $("board").addEventListener("input", function (e) {
+    var row = e.target.closest(".row"); if (!row) return;
+    var a = findA(row.dataset.id);
+    if (e.target.classList.contains("name")) { a.name = e.target.value; save(); }
+    if (e.target.classList.contains("kg")) { a.kg = parseFloat(e.target.value) || 0; a.ref = "Total manual"; save(); refreshNumbers(); }
+  });
+  $("board").addEventListener("change", function (e) {
+    var row = e.target.closest(".row"); if (!row) return;
+    var a = findA(row.dataset.id);
+    if (e.target.classList.contains("cls")) {
+      var prev = a.c; a.c = e.target.value;
+      var p = a.pid && PROF[a.pid];
+      if (p) {
+        var b = bestIn(p, a.c, state.base);
+        if (b) { a.kg = b.kg; a.ref = b.ref; }
+        else { a.ref = "Sin total en -" + a.c + " el último año; se mantienen " + fmtKg(a.kg) + " kg"; }
+      } else if (prev !== a.c) { a.ref = ""; }
+    }
+    save(); renderBoard(); renderResults();
+  });
+  $("board").addEventListener("keydown", function (e) {
+    if (e.key === "Enter" && e.target.matches("input")) e.target.blur();
+  });
+  $("board").addEventListener("click", function (e) {
+    var row = e.target.closest(".row"); if (!row) return;
+    var id = row.dataset.id, a = findA(id);
+    var step = e.target.closest("button[data-d]");
+    if (step) {
+      a.kg = Math.max(0, Math.round(((a.kg || 0) + parseFloat(step.dataset.d)) * 10) / 10);
+      a.ref = "Total manual";
+      save(); renderBoard();
+      var again = $("k-" + id); if (again) again.closest(".row").querySelector('button[data-d="' + step.dataset.d + '"]').focus();
+      return;
+    }
+    if (e.target.closest(".del")) {
+      state.lineup[state.g] = state.lineup[state.g].filter(function (x) { return x.id !== id; });
+      save(); renderBoard();
+    }
+  });
+  $("add").addEventListener("click", function () {
+    var g = state.g; if (state.lineup[g].length >= 12) return;
+    var a = { id: uid(), name: "", c: state.calc[g].c, kg: 0, ref: "" };
+    state.lineup[g].push(a); save(); renderBoard();
+    var n = $("n-" + a.id); if (n) n.focus();
+  });
+  function setBase(b) {
+    state.base = b;
+    state.lineup[state.g].forEach(function (a) {
+      var p = a.pid && PROF[a.pid]; if (!p) return;
+      var r = bestIn(p, a.c, b);
+      if (r) { a.kg = r.kg; a.ref = r.ref; }
+    });
+    save(); renderBoard();
+  }
+  $("b-year").addEventListener("click", function () { setBase("year"); });
+  $("b-worlds").addEventListener("click", function () { setBase("worlds"); });
+  $("example").addEventListener("click", function () { state.lineup[state.g] = makeLineup(state.g, state.base); save(); renderBoard(); renderResults(); });
+  function armed(btn, label, run) {
+    var on = false, t;
+    btn.addEventListener("click", function () {
+      if (!on) { on = true; btn.textContent = "¿Seguro? Pulsa otra vez"; t = setTimeout(function () { on = false; btn.textContent = label; }, 3000); return; }
+      clearTimeout(t); on = false; btn.textContent = label; run();
+    });
+  }
+  armed($("clear"), "Vaciar", function () { state.lineup[state.g] = []; save(); renderBoard(); });
+
+  /* ---------- Récords ---------- */
+  function recCell(x) {
+    return '<div class="rec"><span class="kg">' + fmtKg(x[0]) + '</span><span class="who">' + esc(x[1]) + '</span>' +
+      '<span class="where">' + esc(meetLabel(x[4], x[3])) + ' · ' + fmtDate(x[3]) + '</span>' +
+      (x[5] ? '<span><span class="pill chk" title="Hecho en un evento invitacional; confirma en GoodLift si cuenta como récord">Verificar</span></span>' : '') + '</div>';
+  }
+  function renderWR() {
+    var g = state.g;
+    $("wr-body").innerHTML = RECORDS[g].map(function (r, i) {
+      var cur = state.wr[g][i], modified = cur.kg !== r.T[0];
+      return '<tr><td class="cls-cell">' + r.c + '</td><td>' + recCell(r.S) + '</td><td>' + recCell(r.B) + '</td><td>' + recCell(r.D) + '</td>' +
+        '<td class="total-col"><div class="rec"><input type="number" step="0.5" min="0" id="wr-' + g + '-' + i + '" data-i="' + i + '" value="' + cur.kg + '" aria-label="Récord total ' + r.c + '">' +
+        (modified ? '<span><span class="pill mod">Editado · era ' + fmtKg(r.T[0]) + '</span></span>' :
+          '<span class="who">' + esc(r.T[1]) + '</span><span class="where">' + esc(meetLabel(r.T[4], r.T[3])) + ' · ' + fmtDate(r.T[3]) + '</span>') +
+        '</div></td></tr>';
+    }).join("");
+  }
+  $("wr-body").addEventListener("input", function (e) {
+    var i = e.target.dataset.i; if (i == null) return;
+    var v = parseFloat(e.target.value); if (!(v > 0)) return;
+    state.wr[state.g][i].kg = v; save(); updateCalcReadout(); refreshNumbers();
+  });
+  $("wr-body").addEventListener("change", function () { renderWR(); renderBoard(); renderResults(); });
+  armed($("reset-wr"), "Restaurar récords", function () { state.wr[state.g] = clone(DEFAULT_WR[state.g]); save(); renderAll(); });
+
+  /* ---------- Resultados ---------- */
+  function renderResults() {
+    var g = state.g;
+    var cards = PROFILES.filter(function (p) { return p.g === g; }).map(function (p) {
+      var best = null;
+      p.m.forEach(function (m) {
+        var pc = m[8] > 0 && CLASSES[g].indexOf(m[3]) >= 0 ? pctOf(g, m[3], m[8]) : null;
+        m.pc = pc;
+        if (pc != null && (!best || pc > best.pc)) best = m;
+      });
+      return { p: p, best: best };
+    });
+    cards.sort(function (a, b) { return (b.best ? b.best.pc : -1) - (a.best ? a.best.pc : -1); });
+    var inLineup = {};
+    state.lineup[g].forEach(function (a) { if (a.pid) inLineup[a.pid] = a.c; });
+    $("results").innerHTML = cards.map(function (it) {
+      var p = it.p, b = it.best;
+      var recent = p.m.some(function (m) { return m[0] >= RECENT_FROM; });
+      var cur = inLineup[p.id] || p.c;
+      var head = '<div class="card-head"><div><div class="card-name">' + esc(p.name) + '</div>' +
+        '<div class="card-sub">' + esc(p.country) + ' · Sheffield en -' + esc(cur) +
+        (p.wc ? ' <span class="pill">Wildcard</span>' : '') + (recent ? ' <span class="pill new">Compitió hace poco</span>' : '') + '</div></div>' +
+        (b ? '<div class="card-best"><b>' + fmtPct(b.pc) + '%</b><span>mejor · ' + fmtKg(b[8]) + ' kg en -' + b[3] + '</span></div>' : '') + '</div>';
+      var rows = p.m.map(function (m) {
+        var top = b && m === b;
+        var n = function (v) { return v ? fmtKg(v) : "–"; };
+        return '<tr class="' + (top ? "top" : "") + '"><td>' + fmtDate(m[0]) + '</td>' +
+          '<td class="mname">' + esc(meetLabel(m[1], m[0]).replace(/ \d{4}$/, "")) + '<small>' + esc(m[2]) + (m[10] ? " · internacional" : " · nacional") + '</small></td>' +
+          '<td>-' + esc(m[3]) + '</td><td>' + (m[4] ? fmtKg(m[4]) : "–") + '</td>' +
+          '<td>' + n(m[5]) + '</td><td>' + n(m[6]) + '</td><td>' + n(m[7]) + '</td>' +
+          (m[8] ? '<td class="tot">' + fmtKg(m[8]) + '</td>' : '<td class="dq">Nulo</td>') +
+          '<td>' + esc(m[9]) + '</td><td>' + (m.pc != null ? fmtPct(m.pc) + "%" : "–") + '</td></tr>';
+      }).join("");
+      return '<article class="card">' + head + '<div class="table-scroll"><table class="meet-table"><thead><tr>' +
+        '<th>Fecha</th><th>Competencia</th><th>Cat.</th><th>Peso</th><th>SQ</th><th>BP</th><th>DL</th><th>Total</th><th>Pto.</th><th>% WR</th>' +
+        '</tr></thead><tbody>' + rows + '</tbody></table></div></article>';
+    }).join("");
+  }
+
+  function renderAll() {
+    ["m", "f"].forEach(function (k) { $("g-" + k).setAttribute("aria-pressed", String(k === state.g)); });
+    renderCalc(); renderBoard(); renderWR(); renderResults();
+  }
+  renderAll();
+})();
+</script>
+
+</body></html>
